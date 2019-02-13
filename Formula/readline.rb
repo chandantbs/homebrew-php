@@ -1,34 +1,62 @@
 class Readline < Formula
   desc "Library for command-line editing"
   homepage "https://tiswww.case.edu/php/chet/readline/rltop.html"
-  url "https://ftpmirror.gnu.org/readline/readline-7.0.tar.gz"
-  mirror "https://ftp.gnu.org/gnu/readline/readline-7.0.tar.gz"
-  sha256 "750d437185286f40a369e1e4f4764eda932b9459b5ec9a731628393dd3d32334"
+
+  stable do
+    url "https://ftp.gnu.org/gnu/readline/readline-7.0.tar.gz"
+    mirror "https://ftpmirror.gnu.org/readline/readline-7.0.tar.gz"
+    version "7.0.5"
+    sha256 "750d437185286f40a369e1e4f4764eda932b9459b5ec9a731628393dd3d32334"
+
+    %w[
+      001 9ac1b3ac2ec7b1bf0709af047f2d7d2a34ccde353684e57c6b47ebca77d7a376
+      002 8747c92c35d5db32eae99af66f17b384abaca961653e185677f9c9a571ed2d58
+      003 9e43aa93378c7e9f7001d8174b1beb948deefa6799b6f581673f465b7d9d4780
+      004 f925683429f20973c552bff6702c74c58c2a38ff6e5cf305a8e847119c5a6b64
+      005 ca159c83706541c6bbe39129a33d63bbd76ac594303f67e4d35678711c51b753
+    ].each_slice(2) do |p, checksum|
+      patch :p0 do
+        url "https://ftp.gnu.org/gnu/readline/readline-7.0-patches/readline70-#{p}"
+        mirror "https://ftpmirror.gnu.org/readline/readline-7.0-patches/readline70-#{p}"
+        sha256 checksum
+      end
+    end
+  end
 
   bottle do
     cellar :any
-    sha256 "11f2ad09f5eb9e055b2567c4308f35cc8e006b9ffdfe49599e4c4d92a0a3a066" => :sierra
-    sha256 "9d38481c935cef21ead25c294285b78a9e8fa556fd15ede9126926c055c40d37" => :el_capitan
-    sha256 "d0cdb3e162c05e21c7184e86629f04685d4be98e38cbf024373142bf8764500e" => :yosemite
-    sha256 "adcc6352d3fb271a1e9ce034d80996405a5c46afbd1bab1507d3ff5e89e02bc1" => :mavericks
-    sha256 "6b1d7e806e169e2b778371d74e7cc62106c348ea9f5c80fd658b763b94dc748e" => :mountain_lion
-    sha256 "c129333634dd00ab2267ae9c531fca1f5cc50dd519ed3399918289fdfdf2663b" => :lion
+    sha256 "5976a79f0dbd5ccb2a261f692763319d612309caa2b8cf703f209270764c657c" => :mojave
+    sha256 "0cc8fcf8ee733e41c40b859a09eb00f723222a40398fdd15d32891df1eca2eef" => :high_sierra
+    sha256 "962ae47be894e6d3a354b24953fc6b456c42dc054bcd44092cabf65e734a152b" => :sierra
+    sha256 "a7f92cf74dfd299b0c368a983c6f83fc50395b0392b8465316133c625744bcc5" => :el_capitan
   end
 
-  keg_only :shadowed_by_osx, <<-EOS.undent
-    OS X provides the BSD libedit library, which shadows libreadline.
+  devel do
+    url "https://ftp.gnu.org/gnu/readline/readline-8.0-alpha.tar.gz"
+    mirror "https://ftpmirror.gnu.org/readline/readline-8.0-alpha.tar.gz"
+    sha256 "81d975b3687c6dea260baf1754009ef24c4b2b851f35e0bef4c06be7524cbfba"
+
+    # Fix "lib/pkgconfig/readline.pc: No such file or directory"
+    # Reported 23 May 2018 https://lists.gnu.org/archive/html/bug-readline/2018-05/msg00007.html
+    patch do
+      url "https://raw.githubusercontent.com/Homebrew/formula-patches/ae60828/readline/pkgconfigdir.patch"
+      sha256 "aa5d014cc0cdef7a231c116764e8cf85ba77d5fcc5f9e7aec8df9dce76a864ed"
+    end
+  end
+
+  keg_only :shadowed_by_macos, <<~EOS
+    macOS provides the BSD libedit library, which shadows libreadline.
     In order to prevent conflicts when programs look for libreadline we are
-    defaulting this GNU Readline installation to keg-only.
+    defaulting this GNU Readline installation to keg-only
   EOS
 
   def install
-    ENV.universal_binary
-    system "./configure", "--prefix=#{prefix}", "--enable-multibyte"
+    system "./configure", "--prefix=#{prefix}"
     system "make", "install"
   end
 
   test do
-    (testpath/"test.c").write <<-EOS.undent
+    (testpath/"test.c").write <<~EOS
       #include <stdio.h>
       #include <stdlib.h>
       #include <readline/readline.h>
@@ -39,7 +67,7 @@ class Readline < Formula
         return 0;
       }
     EOS
-    system ENV.cc, "-L", lib, "test.c", "-lreadline", "-o", "test"
+    system ENV.cc, "-L", lib, "test.c", "-L#{lib}", "-lreadline", "-o", "test"
     assert_equal "test> Hello, World!\nHello, World!",
       pipe_output("./test", "Hello, World!\n").strip
   end
