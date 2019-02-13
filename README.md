@@ -12,7 +12,7 @@ A centralized repository for PHP-related brews.
 Run the following in your command-line:
 
 ```sh
-$ brew tap homebrew/homebrew-php
+$ brew tap chandantbs/homebrew-php
 ```
 
 ## Bugs happen
